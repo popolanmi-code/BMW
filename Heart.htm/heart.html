@@ -3,26 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <title>Heart Animation</title>
-    <link rel="stylesheet" href="heart.css">
     <style>
-* { margin: 0; padding: 0; }
-body { background: #000010; overflow: hidden; }
-#galaxy {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    z-index: 0;
-}
-#canvas {
-    position: fixed;
-    top: 0; left: 0;
-    z-index: 1;
-}
-</style>
+        * { margin: 0; padding: 0; }
+        body { background: #000010; overflow: hidden; }
+        #galaxy { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
+        #canvas { position: fixed; top: 0; left: 0; z-index: 1; }
+    </style>
 </head>
 <body>
 <canvas id="galaxy"></canvas>
 <canvas id="canvas"></canvas>
+
+<script>
+// المجرة
 const galaxy = document.getElementById('galaxy');
 const gctx = galaxy.getContext('2d');
 galaxy.width = window.innerWidth;
@@ -39,24 +32,16 @@ grad2.addColorStop(0, 'rgba(0, 100, 255, 0.25)');
 grad2.addColorStop(1, 'rgba(0,0,0,0)');
 gctx.fillStyle = grad2;
 gctx.fillRect(0, 0, galaxy.width, galaxy.height);
-<script>
+
+// القلب
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
-
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
-
 const particles = [];
 const numParticles = 300;
-
-function heartX(t) {
-    return 16 * Math.pow(Math.sin(t), 3);
-}
-
-function heartY(t) {
-    return -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
-}
-
+function heartX(t) { return 16 * Math.pow(Math.sin(t), 3); }
+function heartY(t) { return -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t)); }
 class Particle {
     constructor() { this.reset(); }
     reset() {
@@ -71,12 +56,7 @@ class Particle {
         this.maxLife = this.life;
         this.color = `hsl(${Math.random() * 30}, 100%, ${40 + Math.random() * 30}%)`;
     }
-    update() {
-        this.x += this.speedX;
-        this.y += this.speedY;
-        this.life--;
-        if (this.life <= 0) this.reset();
-    }
+    update() { this.x += this.speedX; this.y += this.speedY; this.life--; if (this.life <= 0) this.reset(); }
     draw() {
         const alpha = this.life / this.maxLife;
         ctx.save();
@@ -90,24 +70,14 @@ class Particle {
         ctx.restore();
     }
 }
-
-for (let i = 0; i < numParticles; i++) {
-    particles.push(new Particle());
-}
-
+for (let i = 0; i < numParticles; i++) particles.push(new Particle());
 function animate() {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     particles.forEach(p => { p.update(); p.draw(); });
     requestAnimationFrame(animate);
 }
-
 animate();
-
-window.addEventListener('resize', () => {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-});
 </script>
 </body>
 </html>
