@@ -4,10 +4,41 @@
     <meta charset="UTF-8">
     <title>Heart Animation</title>
     <link rel="stylesheet" href="heart.css">
+    <style>
+* { margin: 0; padding: 0; }
+body { background: #000010; overflow: hidden; }
+#galaxy {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+}
+#canvas {
+    position: fixed;
+    top: 0; left: 0;
+    z-index: 1;
+}
+</style>
 </head>
 <body>
+<canvas id="galaxy"></canvas>
 <canvas id="canvas"></canvas>
-
+const galaxy = document.getElementById('galaxy');
+const gctx = galaxy.getContext('2d');
+galaxy.width = window.innerWidth;
+galaxy.height = window.innerHeight;
+gctx.fillStyle = '#000010';
+gctx.fillRect(0, 0, galaxy.width, galaxy.height);
+const grad1 = gctx.createRadialGradient(galaxy.width*0.3, galaxy.height*0.4, 0, galaxy.width*0.3, galaxy.height*0.4, 400);
+grad1.addColorStop(0, 'rgba(150, 0, 255, 0.3)');
+grad1.addColorStop(1, 'rgba(0,0,0,0)');
+gctx.fillStyle = grad1;
+gctx.fillRect(0, 0, galaxy.width, galaxy.height);
+const grad2 = gctx.createRadialGradient(galaxy.width*0.7, galaxy.height*0.6, 0, galaxy.width*0.7, galaxy.height*0.6, 350);
+grad2.addColorStop(0, 'rgba(0, 100, 255, 0.25)');
+grad2.addColorStop(1, 'rgba(0,0,0,0)');
+gctx.fillStyle = grad2;
+gctx.fillRect(0, 0, galaxy.width, galaxy.height);
 <script>
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
