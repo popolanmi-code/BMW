@@ -5,7 +5,7 @@
     <title>Dragon</title>
     <style>
         * { margin: 0; padding: 0; }
-        body { overflow: hidden; background: #000; cursor: none; }
+        body { overflow: hidden; background: #e8e4dc; cursor: crosshair; }
         canvas { display: block; }
     </style>
 </head>
@@ -25,90 +25,137 @@ window.addEventListener('mousemove', e => {
     mouseY = e.clientY;
 });
 
-const SEGMENTS = 40;
+const SEGMENTS = 60;
 const body = [];
 for (let i = 0; i < SEGMENTS; i++) {
-    body.push({ x: canvas.width/2, y: canvas.height/2 });
+    body.push({ x: canvas.width/2 - i*10, y: canvas.height/2 });
 }
 
+// هدف التنين يكون خلف الماوس بمسافة
+let targetX = canvas.width / 2;
+let targetY = canvas.height / 2;
+
 function animate() {
-    // خلفية
-    ctx.fillStyle = 'rgba(0,0,10,0.3)';
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // خلفية بيج مثل الصورة
+    ctx.fillStyle = '#e8e4dc';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // تحريك الرأس
-    body[0].x += (mouseX - body[0].x) * 0.2;
-    body[0].y += (mouseY - body[0].y) * 0.2;
+    // الهدف يتبع الماوس ببطء (مسافة)
+    targetX += (mouseX - targetX) * 0.05;
+    targetY += (mouseY - targetY) * 0.05;
+
+    // تحريك الرأس نحو الهدف
+    body[0].x += (targetX - body[0].x) * 0.15;
+    body[0].y += (targetY - body[0].y) * 0.15;
 
     // تحريك الجسم
     for (let i = 1; i < SEGMENTS; i++) {
-        body[i].x += (body[i-1].x - body[i].x) * 0.5;
-        body[i].y += (body[i-1].y - body[i].y) * 0.5;
+        const dx = body[i-1].x - body[i].x;
+        const dy = body[i-1].y - body[i].y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        const gap = 14;
+        if (dist > gap) {
+            body[i].x = body[i-1].x - (dx/dist)*gap;
+            body[i].y = body[i-1].y - (dy/dist)*gap;
+        }
     }
 
-    // رسم الجسم
-    for (let i = SEGMENTS-1; i >= 0; i--) {
-        const size = 18 - (i / SEGMENTS) * 14;
-        
-        // ريش
-        if (i > 2 && i % 2 === 0) {
-            const angle = Math.atan2(
-                body[i].y - body[i-1].y,
-                body[i].x - body[i-1].x
-            );
-            const finSize = size * 3;
-            
+    // رسم التنين
+    for (let i = SEGMENTS-1; i >= 1; i--) {
+        const angle = Math.atan2(
+            body[i-1].y - body[i].y,
+            body[i-1].x - body[i].x
+        );
+        const t = i / SEGMENTS;
+        const size = 3 + (1-t) * 8;
+
+        // ريش على الجانبين
+        if (i % 2 === 0) {
+            const finLen = size * 4 * (1 - t*0.5);
+            const finAngle1 = angle + Math.PI/2;
+            const finAngle2 = angle - Math.PI/2;
+
+            // ريش يمين
             ctx.beginPath();
             ctx.moveTo(body[i].x, body[i].y);
-            ctx.lineTo(
-                body[i].x + Math.cos(angle + Math.PI/2) * finSize,
-                body[i].y + Math.sin(angle + Math.PI/2) * finSize
+            ctx.quadraticCurveTo(
+                body[i].x + Math.cos(finAngle1) * finLen * 0.5,
+                body[i].y + Math.sin(finAngle1) * finLen * 0.5,
+                body[i].x + Math.cos(finAngle1 + 0.3) * finLen,
+                body[i].y + Math.sin(finAngle1 + 0.3) * finLen
             );
-            ctx.strokeStyle = `rgba(255, 150, 0, 0.8)`;
-            ctx.lineWidth = 2;
+            ctx.strokeStyle = `rgba(60,50,40,${0.6 - t*0.4})`;
+            ctx.lineWidth = 1;
             ctx.stroke();
 
+            // ريش يسار
             ctx.beginPath();
             ctx.moveTo(body[i].x, body[i].y);
-            ctx.lineTo(
-                body[i].x + Math.cos(angle - Math.PI/2) * finSize,
-                body[i].y + Math.sin(angle - Math.PI/2) * finSize
+            ctx.quadraticCurveTo(
+                body[i].x + Math.cos(finAngle2) * finLen * 0.5,
+                body[i].y + Math.sin(finAngle2) * finLen * 0.5,
+                body[i].x + Math.cos(finAngle2 - 0.3) * finLen,
+                body[i].y + Math.sin(finAngle2 - 0.3) * finLen
             );
+            ctx.strokeStyle = `rgba(60,50,40,${0.6 - t*0.4})`;
+            ctx.lineWidth = 1;
             ctx.stroke();
         }
 
-        // جسم
+        // العمود الفقري
         ctx.beginPath();
-        ctx.arc(body[i].x, body[i].y, Math.max(size, 2), 0, Math.PI*2);
-        ctx.fillStyle = `rgb(255, ${100 + i*3}, 0)`;
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = 'orange';
+        ctx.arc(body[i].x, body[i].y, size * 0.4, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(40,35,30,${0.9 - t*0.5})`;
         ctx.fill();
+
+        // خط الجسم
+        if (i < SEGMENTS-1) {
+            ctx.beginPath();
+            ctx.moveTo(body[i].x, body[i].y);
+            ctx.lineTo(body[i+1].x, body[i+1].y);
+            ctx.strokeStyle = `rgba(40,35,30,${0.5 - t*0.3})`;
+            ctx.lineWidth = size * 0.6;
+            ctx.stroke();
+        }
     }
 
-    // رأس
+    // الرأس
     ctx.beginPath();
-    ctx.arc(body[0].x, body[0].y, 18, 0, Math.PI*2);
-    ctx.fillStyle = 'yellow';
-    ctx.shadowBlur = 30;
-    ctx.shadowColor = 'orange';
+    ctx.arc(body[0].x, body[0].y, 12, 0, Math.PI*2);
+    ctx.fillStyle = '#1a1510';
     ctx.fill();
 
-    // عيون
-    ctx.shadowBlur = 0;
+    // منقار/فم
+    const headAngle = Math.atan2(body[0].y - body[1].y, body[0].x - body[1].x);
     ctx.beginPath();
-    ctx.arc(body[0].x - 6, body[0].y - 5, 4, 0, Math.PI*2);
-    ctx.fillStyle = 'red';
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(body[0].x + 6, body[0].y - 5, 4, 0, Math.PI*2);
-    ctx.fillStyle = 'red';
-    ctx.fill();
+    ctx.moveTo(body[0].x, body[0].y);
+    ctx.lineTo(
+        body[0].x + Math.cos(headAngle) * 18,
+        body[0].y + Math.sin(headAngle) * 18
+    );
+    ctx.strokeStyle = '#1a1510';
+    ctx.lineWidth = 4;
+    ctx.stroke();
 
-    // نص
+    // عين
+    ctx.beginPath();
+    ctx.arc(
+        body[0].x + Math.cos(headAngle - 0.4) * 6,
+        body[0].y + Math.sin(headAngle - 0.4) * 6,
+        3, 0, Math.PI*2
+    );
     ctx.fillStyle = 'white';
-    ctx.font = 'bold 16px Arial';
-    ctx.fillText('Click to Enter ❤️', body[0].x + 25, body[0].y);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(
+        body[0].x + Math.cos(headAngle - 0.4) * 6,
+        body[0].y + Math.sin(headAngle - 0.4) * 6,
+        1.5, 0, Math.PI*2
+    );
+    ctx.fillStyle = 'black';
+    ctx.fill();
 
     requestAnimationFrame(animate);
 }
