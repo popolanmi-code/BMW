@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Welcome</title>
+    <style>
+        * { margin: 0; padding: 0; }
+        body { overflow: hidden; background: #000010; }
+        #bg { position: fixed; top: 0; left: 0; z-index: 0; }
+        .content {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        h1 {
+            color: white;
+            font-size: 3em;
+            font-family: Arial;
+            text-shadow: 0 0 30px purple, 0 0 60px blue;
+            margin-bottom: 40px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        button {
+            padding: 15px 50px;
+            font-size: 1.2em;
+            background: rgba(150, 0, 255, 0.4);
+            color: white;
+            border: 2px solid purple;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: 0.3s;
+            text-shadow: 0 0 10px white;
+        }
+        button:hover {
+            background: rgba(150, 0, 255, 0.8);
+            transform: scale(1.1);
+            box-shadow: 0 0 30px purple;
+        }
+    </style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div class="content">
+    <h1>✨ Welcome ✨</h1>
+    <button onclick="window.location='Heart.htm/heart.html'">Enter ❤️</button>
+</div>
+
+<script>
+const canvas = document.getElementById('bg');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+// نجوم
+const stars = [];
+for (let i = 0; i < 300; i++) {
+    stars.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 1.5,
+        alpha: Math.random(),
+        speed: Math.random() * 0.02
+    });
+}
+
+// تنين - جسمه سلسلة دوائر
+const dragon = [];
+const dragonLength = 30;
+let angle = 0;
+for (let i = 0; i < dragonLength; i++) {
+    dragon.push({ x: canvas.width/2, y: canvas.height/2 });
+}
+
+function drawBackground() {
+    ctx.fillStyle = '#000010';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // نجوم تلمع
+    stars.forEach(s => {
+        s.alpha += s.speed;
+        if (s.alpha > 1 || s.alpha < 0) s.speed *= -1;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,255,255,${s.alpha})`;
+        ctx.fill();
+    });
+
+    // ضباب بنفسجي
+    const g1 = ctx.createRadialGradient(canvas.width*0.3, canvas.height*0.4, 0, canvas.width*0.3, canvas.height*0.4, 400);
+    g1.addColorStop(0, 'rgba(150,0,255,0.15)');
+    g1.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g1;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // ضباب أزرق
+    const g2 = ctx.createRadialGradient(canvas.width*0.7, canvas.height*0.6, 0, canvas.width*0.7, canvas.height*0.6, 350);
+    g2.addColorStop(0, 'rgba(0,100,255,0.15)');
+    g2.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g2;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function drawDragon() {
+    angle += 0.02;
+    const headX = canvas.width/2 + Math.cos(angle) * 200;
+    const headY = canvas.height/2 + Math.sin(angle * 0.7) * 150;
+
+    // تحريك الجسم
+    dragon.unshift({ x: headX, y: headY });
+    dragon.pop();
+
+    // رسم الجسم
+    dragon.forEach((seg, i) => {
+        const size = (dragonLength - i) * 0.5 + 3;
+        const alpha = 1 - i / dragonLength;
+        ctx.beginPath();
+        ctx.arc(seg.x, seg.y, size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(0, 255, 150, ${alpha})`;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = 'lime';
+        ctx.fill();
+    });
+
+    // رأس التنين
+    ctx.beginPath();
+    ctx.arc(headX, headY, 12, 0, Math.PI * 2);
+    ctx.fillStyle = 'lime';
+    ctx.shadowBlur = 30;
+    ctx.shadowColor = 'green';
+    ctx.fill();
+
+    // عيون
+    ctx.beginPath();
+    ctx.arc(headX + 5, headY - 4, 3, 0, Math.PI * 2);
+    ctx.fillStyle = 'red';
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = 'red';
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+}
+
+function animate() {
+    drawBackground();
+    drawDragon();
+    requestAnimationFrame(animate);
+}
+
+animate();
+</script>
+</body>
+</html>
