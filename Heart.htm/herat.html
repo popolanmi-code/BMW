@@ -17,105 +17,219 @@ const ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-const particles = [];
-const NUM = 500;
 let time = 0;
+// مراحل التشكل
+// 0-200: تشكل تدريجي
+// 200-400: توهج يزداد
+// 400+: مكتمل ومتوهج
+
+const particles = [];
+const NUM = 600;
 
 function heartX(t) { return 16 * Math.pow(Math.sin(t), 3); }
 function heartY(t) { return -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t)); }
 
 class Particle {
-    constructor() { this.reset(); }
-    reset() {
+    constructor(index) {
+        this.index = index;
+        this.reset(true);
+    }
+
+    reset(init = false) {
+        // تأخير ظهور كل جسيم
+        this.delay = init ? this.index * 0.8 : 0;
+        this.active = init ? false : true;
+
         const t = Math.random() * Math.PI * 2;
-        const scale = 14 + Math.sin(time * 0.05) * 2;
-        const noise = (Math.random() - 0.5) * 20;
-        this.x = canvas.width/2 + heartX(t) * scale + noise;
-        this.y = canvas.height/2 + heartY(t) * scale + noise;
-        this.vx = (Math.random() - 0.5) * 1.5;
-        this.vy = (Math.random() - 0.5) * 1.5 - 0.5;
-        this.size = Math.random() * 4 + 1;
+        this.originT = t;
+
+        const scale = 13;
+        const noise = init ? 200 : (Math.random() - 0.5) * 15;
+
+        // نقطة البداية عشوائية من المركز
+        if (init) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = Math.random() * 50;
+            this.x = canvas.width/2 + Math.cos(angle) * dist;
+            this.y = canvas.height/2 + Math.sin(angle) * dist;
+        } else {
+            this.x = canvas.width/2 + heartX(t) * scale + (Math.random()-0.5)*10;
+            this.y = canvas.height/2 + heartY(t) * scale + (Math.random()-0.5)*10;
+        }
+
+        // الهدف على شكل القلب
+        this.targetX = canvas.width/2 + heartX(t) * scale;
+        this.targetY = canvas.height/2 + heartY(t) * scale;
+
+        this.vx = (Math.random() - 0.5) * 2;
+        this.vy = (Math.random() - 0.5) * 2 - 0.3;
+        this.size = Math.random() * 3 + 1;
         this.life = 1;
-        this.decay = Math.random() * 0.015 + 0.005;
-        // ألوان نار حمراء
-        const r = 255;
-        const g = Math.floor(Math.random() * 80);
-        const b = 0;
-        this.color = `${r},${g},${b}`;
+        this.decay = Math.random() * 0.008 + 0.003;
+        this.formed = false;
+
+        const g = Math.floor(Math.random() * 100);
+        this.color = `255,${g},0`;
+        this.brightness = Math.random();
     }
+
     update() {
-        this.x += this.vx;
-        this.y += this.vy;
-        this.life -= this.decay;
-        this.size *= 0.995;
-        if (this.life <= 0) this.reset();
+        if (!this.active) {
+            if (time > this.delay) this.active = true;
+            return;
+        }
+
+        const phase = Math.min(time / 300, 1);
+
+        if (!this.formed) {
+            // تحرك نحو القلب
+            this.x += (this.targetX - this.x) * 0.03;
+            this.y += (this.targetY - this.y) * 0.03;
+
+            const dx = this.targetX - this.x;
+            const dy = this.targetY - this.y;
+            if (Math.sqrt(dx*dx + dy*dy) < 5) this.formed = true;
+        } else {
+            // بعد التشكل يتحرك بحرية
+            this.x += this.vx * 0.5;
+            this.y += this.vy * 0.5;
+            this.life -= this.decay;
+            if (this.life <= 0) this.reset();
+        }
+
+        this.size = (2 + phase * 2) * (0.8 + this.brightness * 0.4);
     }
+
     draw() {
+        if (!this.active) return;
+        const phase = Math.min(time / 300, 1);
+        const glowPhase = Math.min(Math.max((time - 200) / 200, 0), 1);
+        const alpha = this.formed ? this.life : 0.6 + phase * 0.4;
+
         ctx.save();
-        ctx.globalAlpha = this.life * 0.8;
-        // توهج النار
-        const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 3);
-        grad.addColorStop(0, `rgba(${this.color},1)`);
-        grad.addColorStop(0.5, `rgba(${this.color},0.5)`);
-        grad.addColorStop(1, `rgba(${this.color},0)`);
+        ctx.globalAlpha = alpha;
+
+        // توهج خارجي يزداد مع الوقت
+        const glowSize = this.size * (3 + glowPhase * 5);
+        const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, glowSize);
+        grad.addColorStop(0, `rgba(255,150,50,1)`);
+        grad.addColorStop(0.3, `rgba(${this.color},0.8)`);
+        grad.addColorStop(1, `rgba(255,0,0,0)`);
         ctx.fillStyle = grad;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size * 3, 0, Math.PI*2);
+        ctx.arc(this.x, this.y, glowSize, 0, Math.PI*2);
         ctx.fill();
 
         // النقطة المركزية
-        ctx.fillStyle = `rgba(255,200,100,${this.life})`;
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = `rgba(255,220,150,${alpha})`;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size * 0.5, 0, Math.PI*2);
+        ctx.arc(this.x, this.y, this.size * 0.4, 0, Math.PI*2);
         ctx.fill();
+
         ctx.restore();
     }
 }
 
-// إضافة جسيمات توهج إضافية
-class GlowParticle {
+// أشعة من المركز
+class Ray {
     constructor() { this.reset(); }
     reset() {
-        const t = Math.random() * Math.PI * 2;
-        const scale = 14;
-        this.x = canvas.width/2 + heartX(t) * scale;
-        this.y = canvas.height/2 + heartY(t) * scale;
-        this.size = Math.random() * 20 + 5;
+        this.angle = Math.random() * Math.PI * 2;
+        this.length = Math.random() * 100 + 50;
+        this.speed = (Math.random() - 0.5) * 0.02;
         this.life = Math.random();
-        this.decay = Math.random() * 0.008 + 0.003;
+        this.decay = Math.random() * 0.005 + 0.002;
+        this.width = Math.random() * 2 + 0.5;
     }
     update() {
+        this.angle += this.speed;
         this.life -= this.decay;
-        this.size *= 0.99;
         if (this.life <= 0) this.reset();
     }
     draw() {
+        const glowPhase = Math.min(Math.max((time - 150) / 200, 0), 1);
+        if (glowPhase <= 0) return;
+
+        const cx = canvas.width/2;
+        const cy = canvas.height/2;
+        const len = this.length * glowPhase;
+
         ctx.save();
-        ctx.globalAlpha = this.life * 0.3;
-        const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size);
-        grad.addColorStop(0, 'rgba(255,50,0,1)');
-        grad.addColorStop(1, 'rgba(255,0,0,0)');
-        ctx.fillStyle = grad;
+        ctx.globalAlpha = this.life * glowPhase * 0.4;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
-        ctx.fill();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(this.angle) * len, cy + Math.sin(this.angle) * len);
+        ctx.strokeStyle = `rgba(255,50,0,1)`;
+        ctx.lineWidth = this.width;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = 'red';
+        ctx.stroke();
         ctx.restore();
     }
 }
 
-for (let i = 0; i < NUM; i++) particles.push(new Particle());
-const glows = [];
-for (let i = 0; i < 100; i++) glows.push(new GlowParticle());
+// توهج القلب الكبير
+class HeartGlow {
+    constructor() { this.pulse = 0; }
+    draw() {
+        const glowPhase = Math.min(Math.max((time - 200) / 200, 0), 1);
+        if (glowPhase <= 0) return;
+
+        this.pulse += 0.05;
+        const pulsate = 1 + Math.sin(this.pulse) * 0.1;
+        const scale = 13 * pulsate;
+
+        ctx.save();
+        // رسم القلب كمسار
+        ctx.beginPath();
+        for (let t = 0; t < Math.PI * 2; t += 0.05) {
+            const x = canvas.width/2 + heartX(t) * scale;
+            const y = canvas.height/2 + heartY(t) * scale;
+            if (t === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+
+        // توهج داخلي
+        const innerGrad = ctx.createRadialGradient(
+            canvas.width/2, canvas.height/2, 0,
+            canvas.width/2, canvas.height/2, 200
+        );
+        innerGrad.addColorStop(0, `rgba(255,100,0,${glowPhase * 0.3})`);
+        innerGrad.addColorStop(0.5, `rgba(255,0,0,${glowPhase * 0.15})`);
+        innerGrad.addColorStop(1, 'rgba(255,0,0,0)');
+        ctx.fillStyle = innerGrad;
+        ctx.fill();
+
+        // حواف متوهجة
+        ctx.shadowBlur = 30 * glowPhase;
+        ctx.shadowColor = 'red';
+        ctx.strokeStyle = `rgba(255,50,0,${glowPhase * 0.8})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+    }
+}
+
+for (let i = 0; i < NUM; i++) particles.push(new Particle(i));
+const rays = Array.from({length: 40}, () => new Ray());
+const heartGlow = new HeartGlow();
 
 function animate() {
     time++;
-    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+
+    // خلفية
+    ctx.fillStyle = 'rgba(0,0,0,0.12)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // رسم التوهج الكبير
-    glows.forEach(g => { g.update(); g.draw(); });
+    // توهج القلب
+    heartGlow.draw();
 
-    // رسم الجسيمات
+    // الأشعة
+    rays.forEach(r => { r.update(); r.draw(); });
+
+    // الجسيمات
     particles.forEach(p => { p.update(); p.draw(); });
 
     requestAnimationFrame(animate);
