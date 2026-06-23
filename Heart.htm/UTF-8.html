@@ -5,7 +5,7 @@
     <title>Dragon</title>
     <style>
         * { margin: 0; padding: 0; }
-        body { overflow: hidden; background: #0a0a1a; cursor: none; }
+        body { overflow: hidden; background: #000; cursor: none; }
         canvas { display: block; }
     </style>
 </head>
@@ -17,119 +17,107 @@ const ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-const mouse = { x: canvas.width/2, y: canvas.height/2 };
+let mouseX = canvas.width / 2;
+let mouseY = canvas.height / 2;
+
 window.addEventListener('mousemove', e => {
-    mouse.x = e.clientX;
-    mouse.y = e.clientY;
+    mouseX = e.clientX;
+    mouseY = e.clientY;
 });
 
-// جسم التنين - سلسلة طويلة
-const SEGMENTS = 60;
+const SEGMENTS = 40;
 const body = [];
 for (let i = 0; i < SEGMENTS; i++) {
     body.push({ x: canvas.width/2, y: canvas.height/2 });
 }
 
-// نجوم خلفية
-const stars = Array.from({length: 200}, () => ({
-    x: Math.random() * canvas.width,
-    y: Math.random() * canvas.height,
-    r: Math.random() * 1.2,
-    a: Math.random()
-}));
-
-function drawStars() {
-    stars.forEach(s => {
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
-        ctx.fillStyle = `rgba(255,255,255,${s.a})`;
-        ctx.fill();
-    });
-    // ضباب مجرة
-    const g1 = ctx.createRadialGradient(canvas.width*0.3, canvas.height*0.4, 0, canvas.width*0.3, canvas.height*0.4, 350);
-    g1.addColorStop(0, 'rgba(150,0,255,0.12)');
-    g1.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = g1;
+function animate() {
+    // خلفية
+    ctx.fillStyle = 'rgba(0,0,10,0.3)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    const g2 = ctx.createRadialGradient(canvas.width*0.7, canvas.height*0.6, 0, canvas.width*0.7, canvas.height*0.6, 300);
-    g2.addColorStop(0, 'rgba(0,100,255,0.1)');
-    g2.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = g2;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-}
 
-function drawDragon() {
-    // تحريك الرأس نحو الماوس
-    body[0].x += (mouse.x - body[0].x) * 0.15;
-    body[0].y += (mouse.y - body[0].y) * 0.15;
+    // تحريك الرأس
+    body[0].x += (mouseX - body[0].x) * 0.2;
+    body[0].y += (mouseY - body[0].y) * 0.2;
 
-    // تحريك باقي الجسم
+    // تحريك الجسم
     for (let i = 1; i < SEGMENTS; i++) {
-        const dx = body[i-1].x - body[i].x;
-        const dy = body[i-1].y - body[i].y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        const spacing = 12;
-        if (dist > spacing) {
-            body[i].x += dx * 0.4;
-            body[i].y += dy * 0.4;
-        }
+        body[i].x += (body[i-1].x - body[i].x) * 0.5;
+        body[i].y += (body[i-1].y - body[i].y) * 0.5;
     }
 
     // رسم الجسم
     for (let i = SEGMENTS-1; i >= 0; i--) {
-        const t = i / SEGMENTS;
-        const size = (1 - t) * 14 + 2;
-        const alpha = 1 - t * 0.5;
-
-        // حساب الاتجاه للريش
-        let angle = 0;
-        if (i < SEGMENTS - 1) {
-            angle = Math.atan2(body[i+1].y - body[i].y, body[i+1].x - body[i].x);
-        }
-
-        // ريش التنين على الجانبين
-        if (i % 3 === 0 && i > 5) {
-            const finLen = size * 2.5;
-            // يمين
-            ctx.beginPath();
-            ctx.moveTo(body[i].x, body[i].y);
-            ctx.lineTo(
-                body[i].x + Math.cos(angle + Math.PI/2) * finLen,
-                body[i].y + Math.sin(angle + Math.PI/2) * finLen
+        const size = 18 - (i / SEGMENTS) * 14;
+        
+        // ريش
+        if (i > 2 && i % 2 === 0) {
+            const angle = Math.atan2(
+                body[i].y - body[i-1].y,
+                body[i].x - body[i-1].x
             );
-            ctx.strokeStyle = `rgba(0,200,100,${alpha * 0.5})`;
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-            // يسار
+            const finSize = size * 3;
+            
             ctx.beginPath();
             ctx.moveTo(body[i].x, body[i].y);
             ctx.lineTo(
-                body[i].x + Math.cos(angle - Math.PI/2) * finLen,
-                body[i].y + Math.sin(angle - Math.PI/2) * finLen
+                body[i].x + Math.cos(angle + Math.PI/2) * finSize,
+                body[i].y + Math.sin(angle + Math.PI/2) * finSize
+            );
+            ctx.strokeStyle = `rgba(255, 150, 0, 0.8)`;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(body[i].x, body[i].y);
+            ctx.lineTo(
+                body[i].x + Math.cos(angle - Math.PI/2) * finSize,
+                body[i].y + Math.sin(angle - Math.PI/2) * finSize
             );
             ctx.stroke();
         }
 
-        // الجسم الرئيسي
+        // جسم
         ctx.beginPath();
-        ctx.arc(body[i].x, body[i].y, size, 0, Math.PI*2);
-        ctx.fillStyle = `rgba(255, ${100 + t*155}, 0, ${alpha})`;
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = 'rgba(0,255,100,0.5)';
+        ctx.arc(body[i].x, body[i].y, Math.max(size, 2), 0, Math.PI*2);
+        ctx.fillStyle = `rgb(255, ${100 + i*3}, 0)`;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = 'orange';
         ctx.fill();
     }
 
-    // الرأس
+    // رأس
     ctx.beginPath();
-    ctx.arc(body[0].x, body[0].y, 16, 0, Math.PI*2);
-    ctx.fillStyle = '#ff6600';
-    ctx.shadowBlur = 'orange';
-    ctx.shadowColor = 'lime';
+    ctx.arc(body[0].x, body[0].y, 18, 0, Math.PI*2);
+    ctx.fillStyle = 'yellow';
+    ctx.shadowBlur = 30;
+    ctx.shadowColor = 'orange';
     ctx.fill();
 
-    // العيون
-    const eyeAngle = Math.atan2(mouse.y - body[1].y, mouse.x - body[1].x);
-    [-1, 1].forEach(side => {
-        const ex = body[0].x + Math.cos(eyeAngle + side * 0.5) * 7;
-        const ey = body[0].y + Math.sin(eyeAngle + side * 0.5) * 7;
-        ctx.beginPath();
+    // عيون
+    ctx.shadowBlur = 0;
+    ctx.beginPath();
+    ctx.arc(body[0].x - 6, body[0].y - 5, 4, 0, Math.PI*2);
+    ctx.fillStyle = 'red';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(body[0].x + 6, body[0].y - 5, 4, 0, Math.PI*2);
+    ctx.fillStyle = 'red';
+    ctx.fill();
+
+    // نص
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 16px Arial';
+    ctx.fillText('Click to Enter ❤️', body[0].x + 25, body[0].y);
+
+    requestAnimationFrame(animate);
+}
+
+canvas.addEventListener('click', () => {
+    window.location = 'heart.html';
+});
+
+animate();
+</script>
+</body>
+</html>
