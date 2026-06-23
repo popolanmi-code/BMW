@@ -113,7 +113,7 @@ function drawDragon() {
         // الجسم الرئيسي
         ctx.beginPath();
         ctx.arc(body[i].x, body[i].y, size, 0, Math.PI*2);
-        ctx.fillStyle = `rgba(0, ${150 + t*100}, ${80 + t*50}, ${alpha})`;
+        ctx.fillStyle = `rgba(255, ${100 + t*155}, 0, ${alpha})`;
         ctx.shadowBlur = 10;
         ctx.shadowColor = 'rgba(0,255,100,0.5)';
         ctx.fill();
@@ -122,8 +122,8 @@ function drawDragon() {
     // الرأس
     ctx.beginPath();
     ctx.arc(body[0].x, body[0].y, 16, 0, Math.PI*2);
-    ctx.fillStyle = '#00ff88';
-    ctx.shadowBlur = 25;
+    ctx.fillStyle = '#ff6600';
+    ctx.shadowBlur = 'orange';
     ctx.shadowColor = 'lime';
     ctx.fill();
 
